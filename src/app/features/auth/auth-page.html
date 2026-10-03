@@ -1,0 +1,129 @@
+<section class="bg-surface-alt flex min-h-screen items-center justify-center px-6 pt-24 pb-16">
+  <div class="rounded-card w-full max-w-sm bg-white p-8 shadow-sm">
+    <p class="text-primary text-xs font-semibold tracking-wide uppercase">B2B Shop</p>
+    <h1 class="mt-1 text-3xl font-bold tracking-tight">
+      {{ mode() === 'register' ? 'Запрос на регистрацию' : 'Вход' }}
+    </h1>
+
+    <div class="bg-surface-alt mt-5 grid grid-cols-2 gap-1 rounded-md p-1 text-sm" role="tablist">
+      <a
+        routerLink="/auth/login"
+        role="tab"
+        [attr.aria-selected]="mode() === 'login'"
+        class="rounded px-3 py-1.5 text-center text-xs font-medium"
+        [class]="mode() === 'login' ? 'text-fg bg-white shadow-sm' : 'text-fg-muted'"
+        >Вход</a
+      >
+      <a
+        routerLink="/auth/register"
+        role="tab"
+        [attr.aria-selected]="mode() === 'register'"
+        class="rounded px-3 py-1.5 text-center text-xs font-medium"
+        [class]="mode() === 'register' ? 'text-fg bg-white shadow-sm' : 'text-fg-muted'"
+        >Запрос на регистрацию</a
+      >
+    </div>
+
+    @if (mode() === 'login') {
+      <form [formGroup]="loginForm" (ngSubmit)="submit()" class="mt-6 space-y-4" novalidate>
+        <label class="block text-sm">
+          Email
+          <input
+            appInput
+            type="email"
+            formControlName="email"
+            autocomplete="email"
+            class="mt-1"
+            [invalid]="loginForm.controls.email.invalid && loginForm.controls.email.touched"
+          />
+        </label>
+        <label class="block text-sm">
+          Пароль
+          <input
+            appInput
+            type="password"
+            formControlName="password"
+            autocomplete="current-password"
+            class="mt-1"
+            [invalid]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
+          />
+        </label>
+        @if (error()) {
+          <p role="alert" class="text-danger text-sm">{{ error() }}</p>
+        }
+        <button appButton type="submit" class="w-full" [loading]="busy()">Войти</button>
+      </form>
+    } @else {
+      <form [formGroup]="registerForm" (ngSubmit)="submit()" class="mt-6 space-y-4" novalidate>
+        <label class="block text-sm">
+          Название компании
+          <input
+            appInput
+            type="text"
+            formControlName="company"
+            autocomplete="organization"
+            class="mt-1"
+            [invalid]="
+              registerForm.controls.company.invalid && registerForm.controls.company.touched
+            "
+          />
+        </label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="block text-sm">
+            Имя
+            <input
+              appInput
+              type="text"
+              formControlName="firstName"
+              autocomplete="given-name"
+              class="mt-1"
+              [invalid]="
+                registerForm.controls.firstName.invalid && registerForm.controls.firstName.touched
+              "
+            />
+          </label>
+          <label class="block text-sm">
+            Фамилия
+            <input
+              appInput
+              type="text"
+              formControlName="lastName"
+              autocomplete="family-name"
+              class="mt-1"
+              [invalid]="
+                registerForm.controls.lastName.invalid && registerForm.controls.lastName.touched
+              "
+            />
+          </label>
+        </div>
+        <label class="block text-sm">
+          Email
+          <input
+            appInput
+            type="email"
+            formControlName="email"
+            autocomplete="email"
+            class="mt-1"
+            [invalid]="registerForm.controls.email.invalid && registerForm.controls.email.touched"
+          />
+        </label>
+        <label class="block text-sm">
+          Номер телефона
+          <input
+            appInput
+            type="tel"
+            formControlName="phone"
+            autocomplete="tel"
+            placeholder="+7 (___) ___-__-__"
+            class="mt-1"
+            [invalid]="registerForm.controls.phone.invalid && registerForm.controls.phone.touched"
+          />
+        </label>
+        @if (error()) {
+          <p role="alert" class="text-danger text-sm">{{ error() }}</p>
+        }
+        <button appButton type="submit" class="w-full" [loading]="busy()">Отправить запрос</button>
+      </form>
+    }
+  </div>
+</section>

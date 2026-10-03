@@ -45,7 +45,13 @@ export interface Product {
   updatedAt: string;
 }
 
-export interface ProductDetail extends Product {
+/** A model of a product: one diagonal / pixel pitch with its own specs, photos and documents. */
+export interface ProductModel {
+  id: string;
+  /** Manufacturer article, unique across the catalog; used in the `?model=` URL. */
+  model: string;
+  /** Short chip text: `55"`, `1,5 мм`. */
+  label: string;
   specGroups: {
     name: string;
     specs: { id: string; name: string; value: string; sortOrder: number; forComparison: boolean }[];
@@ -60,6 +66,10 @@ export interface ProductDetail extends Product {
     externalUrl: string | null;
     downloadUrl: string | null;
   }[];
+}
+
+export interface ProductDetail extends Product {
+  models: ProductModel[];
   blocks: {
     id: string;
     sortOrder: number;

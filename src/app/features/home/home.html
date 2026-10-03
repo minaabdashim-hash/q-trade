@@ -1,5 +1,5 @@
 <!-- 1. Hero: black screen, flagship, one line of benefit, two actions. -->
-<section class="bg-surface-dark overflow-hidden px-6 pt-20 text-center text-white">
+<section class="bg-surface-dark overflow-hidden px-6 pt-20 pb-16 text-center text-white">
   <p class="text-primary text-sm font-semibold">Новинка</p>
   <h1
     class="mx-auto mt-1 max-w-5xl text-5xl font-bold tracking-[-0.02em] md:text-[80px] md:leading-[1.05]"
@@ -10,19 +10,24 @@
   <div class="mt-6 flex items-center justify-center gap-5">
     <a
       routerLink="/catalog"
-      class="bg-primary hover:bg-primary-hover inline-flex h-8 items-center rounded-full px-5 text-sm font-medium"
+      class="bg-primary hover:bg-primary-hover inline-flex h-8 items-center rounded-md px-5 text-sm font-medium"
     >
       Запросить цену
     </a>
     <a routerLink="/catalog" class="text-primary text-sm hover:underline">Подробнее ›</a>
   </div>
-  <!-- Screen cropped by the section edge. -->
-  <div class="mx-auto mt-10 h-48 w-full max-w-3xl md:h-80">
-    <div class="h-[28rem] rounded-[22px] border-[6px] border-[#1d1d1f] bg-[#0b0b0d] p-1.5">
-      <div
-        class="size-full rounded-2xl bg-gradient-to-br from-[#2a3f9f] via-[#4a52c8] to-[#7a85e6]"
-      ></div>
-    </div>
+  <div class="relative mx-auto mt-10 max-w-3xl">
+    <!-- Soft glow so the screen sits in the black instead of floating on it. -->
+    <div
+      class="absolute inset-x-0 top-1/2 -z-0 h-3/4 -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,rgba(0,113,227,0.35),transparent_70%)] blur-2xl"
+    ></div>
+    <img
+      src="/xboard-v7-mtr.png"
+      alt="XBoard V7 MTR"
+      width="1296"
+      height="814"
+      class="relative w-full drop-shadow-[0_30px_60px_rgba(0,0,0,0.8)] transition-transform duration-500 ease-out hover:scale-105 motion-reduce:transition-none"
+    />
   </div>
 </section>
 
@@ -53,9 +58,9 @@
         <div class="mt-auto flex w-full justify-center pt-6 pb-8">
           @switch (tile.device) {
             @case ('panel') {
-              <div class="h-36 w-64 rounded-xl bg-[#1d1d1f] p-1.5 shadow-xl">
+              <div class="h-36 w-64 rounded-lg bg-[#1d1d1f] p-1.5 shadow-xl">
                 <div
-                  class="size-full rounded-lg bg-gradient-to-br from-[#16a34a] to-[#22b8e0]"
+                  class="size-full rounded-md bg-gradient-to-br from-[#16a34a] to-[#22b8e0]"
                 ></div>
               </div>
             }
@@ -65,7 +70,7 @@
               ></div>
             }
             @case ('bar') {
-              <div class="flex h-9 w-72 items-center justify-center rounded-xl bg-[#1d1d1f]">
+              <div class="flex h-9 w-72 items-center justify-center rounded-md bg-[#1d1d1f]">
                 <span class="bg-primary size-3.5 rounded-full"></span>
               </div>
             }
@@ -132,7 +137,7 @@
 </section>
 
 <!-- 6. Short lead form. -->
-<section class="bg-surface-alt px-6 py-14 text-center">
+<section id="request" class="bg-surface-alt scroll-mt-14 px-6 py-14 text-center">
   <h2 class="text-3xl font-bold tracking-tight md:text-4xl">
     Подберём оборудование под вашу задачу.
   </h2>
@@ -146,7 +151,7 @@
       autocomplete="name"
       placeholder="Имя"
       aria-label="Имя"
-      class="border-line h-10 w-44 rounded-full border bg-white px-4 text-sm"
+      class="border-line h-10 w-44 rounded-md border bg-white px-4 text-sm"
     />
     <input
       name="phone"
@@ -156,12 +161,12 @@
       placeholder="+7 (___) ___-__-__"
       aria-label="Телефон"
       pattern="\+7[\d\s()\-]{10,}"
-      class="border-line h-10 w-52 rounded-full border bg-white px-4 text-sm"
+      class="border-line h-10 w-52 rounded-md border bg-white px-4 text-sm"
     />
     <select
       name="room"
       aria-label="Тип помещения"
-      class="border-line text-fg-muted h-10 w-52 rounded-full border bg-white px-4 text-sm"
+      class="border-line text-fg-muted h-10 w-52 rounded-md border bg-white px-4 text-sm"
     >
       <option value="">Тип помещения</option>
       @for (type of roomTypes; track type) {
@@ -170,7 +175,7 @@
     </select>
     <button
       type="submit"
-      class="bg-primary hover:bg-primary-hover h-10 rounded-full px-6 text-sm font-medium text-white"
+      class="bg-primary hover:bg-primary-hover h-10 rounded-md px-6 text-sm font-medium text-white"
     >
       Отправить
     </button>

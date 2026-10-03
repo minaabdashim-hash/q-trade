@@ -92,8 +92,15 @@ const CATEGORY_ICONS: Record<string, string> = {
         </button>
 
         <a
+          routerLink="/auth/login"
+          class="border-fg text-fg hover:bg-fg inline-flex h-7 items-center rounded-md border-[1.5px] px-4 text-xs font-medium whitespace-nowrap transition-colors hover:text-white"
+        >
+          B2B Shop
+        </a>
+
+        <a
           routerLink="/"
-          class="bg-primary hover:bg-primary-hover inline-flex h-7 items-center gap-1.5 rounded-full px-4 text-xs font-medium whitespace-nowrap text-white transition-colors"
+          class="bg-primary hover:bg-primary-hover inline-flex h-7 items-center gap-1.5 rounded-md px-4 text-xs font-medium whitespace-nowrap text-white transition-colors"
         >
           Запросить КП
           <app-icon name="chevron-right" [size]="15" />

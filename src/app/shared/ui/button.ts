@@ -4,7 +4,7 @@ export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'dan
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 
 const BASE =
-  'inline-flex items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap transition-colors ' +
+  'inline-flex items-center justify-center gap-2 rounded-md font-medium whitespace-nowrap transition-colors ' +
   'disabled:pointer-events-none disabled:opacity-50 aria-busy:pointer-events-none';
 
 const VARIANTS: Record<ButtonVariant, string> = {

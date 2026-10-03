@@ -1,28 +1,28 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AVAILABILITY_LABELS, type Product, type ProductImage } from '../../core/models';
 import { PriceFormatPipe } from '../../shared/pipes/price-format.pipe';
-import { Icon } from '../../shared/ui/icon';
+import { deviceShape } from './device-shape';
 
 @Component({
   selector: 'app-product-visual',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon],
   host: { class: 'block' },
   template: `
-    <div class="rounded-card bg-surface-alt flex aspect-[4/3] items-center justify-center p-6">
+    <div
+      class="rounded-card bg-surface-alt flex items-center justify-center"
+      [class]="compact() ? 'h-40 p-2' : 'aspect-[4/3] p-6'"
+    >
       @if (image(); as item) {
         <img
           [src]="item.url"
           [alt]="item.alt || title()"
-          class="max-h-full max-w-full object-contain"
+          class="object-contain transition-transform duration-500 ease-out will-change-transform group-hover:scale-110"
+          [class]="item.type === 'icon' ? 'max-h-24 max-w-24' : 'max-h-full max-w-full'"
           (error)="failedUrl.set(item.url)"
         />
       } @else {
-        <div class="text-fg-muted flex flex-col items-center gap-4">
-          <app-icon name="package" [size]="64" [strokeWidth]="1" />
-          <span class="text-sm">Фото скоро появится</span>
-        </div>
+        <span class="text-[48px]" [class]="shape()" role="img" [attr.aria-label]="title()"></span>
       }
     </div>
   `,
@@ -30,10 +30,17 @@ import { Icon } from '../../shared/ui/icon';
 export class ProductVisual {
   readonly images = input.required<ProductImage[]>();
   readonly title = input.required<string>();
+  /** Short image box for list cards. */
+  readonly compact = input(false);
+  readonly categoryId = input('');
+  protected readonly shape = computed(() => deviceShape(this.categoryId()));
   protected readonly failedUrl = signal<string | null>(null);
   protected readonly image = computed(() => {
-    const images = this.images().filter((item) => item.type !== 'video' && item.type !== 'icon');
-    const image = images.find((item) => item.type === 'main_image') ?? images[0];
+    const images = this.images().filter((item) => item.type !== 'video');
+    const image =
+      images.find((item) => item.type === 'main_image') ??
+      images.find((item) => item.type === 'icon') ??
+      images[0];
     return image && image.url !== this.failedUrl() ? image : null;
   });
 }
@@ -41,41 +48,91 @@ export class ProductVisual {
 @Component({
   selector: 'app-product-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, ProductVisual, PriceFormatPipe, Icon],
+  imports: [RouterLink, ProductVisual, PriceFormatPipe],
   host: { class: 'block h-full' },
   template: `
-    <a
-      [routerLink]="['/products', product().slug]"
-      class="group rounded-card text-fg flex h-full flex-col bg-white p-6 transition-shadow hover:shadow-lg"
+    <div
+      class="rounded-card bg-surface-alt text-fg flex h-full flex-col items-center p-6 text-center transition-shadow duration-300 hover:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.25)]"
     >
-      <app-product-visual [images]="product().images" [title]="product().title" />
-      <div class="mt-6 flex items-center justify-between gap-2 text-sm">
-        <span class="text-fg-muted">{{ availability[product().availability] }}</span>
+      <div class="flex h-6 w-full">
         @if (product().badge; as badge) {
-          <span class="bg-surface-alt rounded-full px-3 py-1">{{ badges[badge] }}</span>
+          <span
+            class="rounded-md bg-[#fdf0d5] px-2.5 py-1 text-xs font-bold tracking-wide text-[#b45309]"
+          >
+            {{ badges[badge] }}
+          </span>
         }
       </div>
-      <h2 class="mt-3 text-2xl font-semibold tracking-tight">{{ product().title }}</h2>
-      @if (product().summary) {
-        <p class="text-fg-muted mt-3">{{ product().summary }}</p>
+      <a [routerLink]="['/products', product().slug]" class="group block w-full">
+        <app-product-visual
+          [images]="product().images"
+          [title]="product().title"
+          [compact]="true"
+          [categoryId]="product().categoryId"
+        />
+        <h2
+          class="group-hover:text-primary mt-4 text-lg font-bold tracking-tight transition-colors"
+        >
+          {{ product().title }}
+        </h2>
+      </a>
+      @if (product().tagline ?? product().summary ?? product().model; as line) {
+        <p class="text-fg-muted mt-1 line-clamp-3 text-xs">{{ line }}</p>
       }
-      <div class="mt-auto pt-6">
-        <p class="font-medium">
-          @if (product().showPrice && product().price !== null) {
-            от {{ product().price | price: product().currency : { hideZeroCents: true } }}
-          } @else {
-            Цена по запросу
+      @if (product().variants.length) {
+        <p class="mt-2 line-clamp-2 text-xs font-medium">{{ product().variants.join(' · ') }}</p>
+      }
+      <p class="mt-4 text-sm font-semibold">
+        @if (product().showPrice && product().price !== null) {
+          от {{ product().price | price: product().currency : { hideZeroCents: true } }}
+        } @else {
+          Цена по запросу
+        }
+      </p>
+      @if (showAvailability()) {
+        <p class="text-xs" [class]="stockTone()">
+          {{ availability[product().availability] }}
+          @if (product().availability === 'on_order' && product().deliveryTime) {
+            · {{ product().deliveryTime }}
           }
         </p>
-        <span class="text-primary mt-4 inline-flex items-center gap-1 group-hover:underline">
-          Подробнее <app-icon name="chevron-right" [size]="16" />
-        </span>
-      </div>
-    </a>
+      }
+      <a
+        [routerLink]="['/products', product().slug]"
+        class="bg-primary hover:bg-primary-hover mt-5 inline-flex h-9 items-center rounded-md px-6 text-xs font-semibold text-white transition-colors"
+      >
+        {{ product().showPrice && product().price !== null ? 'Запросить КП' : 'Запросить цену' }}
+      </a>
+      @if (comparable()) {
+        <label class="text-fg-muted mt-3 flex cursor-pointer items-center gap-1.5 text-xs">
+          <input
+            type="checkbox"
+            [checked]="compared()"
+            (change)="compareChange.emit($any($event.target).checked)"
+          />
+          Сравнить
+        </label>
+      }
+    </div>
   `,
 })
 export class ProductCard {
   readonly product = input.required<Product>();
+  /** Shows the "Сравнить" checkbox; the parent owns the selection. */
+  readonly comparable = input(false);
+  readonly compared = input(false);
+  readonly compareChange = output<boolean>();
   protected readonly availability = AVAILABILITY_LABELS;
-  protected readonly badges = { new: 'Новинка', hit: 'Хит', discount: 'Скидка' };
+  protected readonly badges = { new: 'NEW', hit: 'ХИТ', discount: 'СКИДКА' };
+  /** "Под заказ" without a lead time is only the default, not information. */
+  protected readonly showAvailability = computed(
+    () => this.product().availability !== 'on_order' || !!this.product().deliveryTime,
+  );
+  protected readonly stockTone = computed(() =>
+    this.product().availability === 'in_stock'
+      ? 'text-success'
+      : this.product().availability === 'discontinued'
+        ? 'text-fg-muted'
+        : 'text-warning',
+  );
 }

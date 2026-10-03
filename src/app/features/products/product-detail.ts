@@ -6,6 +6,7 @@ import {
   effect,
   inject,
   input,
+  signal,
 } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -13,14 +14,14 @@ import { AVAILABILITY_LABELS, categoryPath } from '../../core/models';
 import { ProductService, apiErrorStatus } from '../../core/services/product.service';
 import { SeoService } from '../../core/services/seo.service';
 import { PriceFormatPipe } from '../../shared/pipes/price-format.pipe';
-import { Icon } from '../../shared/ui/icon';
 import { Spinner } from '../../shared/ui/spinner';
-import { ProductCard, ProductVisual } from './product-card';
+import { deviceShape } from './device-shape';
+import { ProductVisual } from './product-card';
 
 @Component({
   selector: 'app-product-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Spinner, ProductCard, ProductVisual, PriceFormatPipe],
+  imports: [RouterLink, Spinner, ProductVisual, PriceFormatPipe],
   templateUrl: './product-detail.html',
 })
 export class ProductDetailPage {
@@ -28,7 +29,12 @@ export class ProductDetailPage {
   private readonly seo = inject(SeoService);
   private readonly response = inject(RESPONSE_INIT, { optional: true });
   readonly slug = input.required<string>();
+  /** Article of the chosen model, from `?model=`; the first model when absent or unknown. */
+  readonly model = input<string>();
   protected readonly availability = AVAILABILITY_LABELS;
+  protected readonly deviceShape = deviceShape;
+  protected readonly previewGroups = 4;
+  protected readonly allSpecs = signal(false);
   protected readonly product = rxResource({
     params: () => ({ slug: this.slug(), lang: this.service.language() }),
     stream: ({ params }) => this.service.bySlug(params.slug, params.lang),
@@ -39,6 +45,24 @@ export class ProductDetailPage {
         ? { slug: this.product.value().slug, lang: this.service.language() }
         : undefined,
     stream: ({ params }) => this.service.related(params.slug, 4, params.lang),
+  });
+  protected readonly current = computed(() => {
+    const models = this.product.hasValue() ? this.product.value().models : [];
+    return models.find((item) => item.model === this.model()) ?? models[0] ?? null;
+  });
+  protected readonly specGroups = computed(() => this.current()?.specGroups ?? []);
+  protected readonly documents = computed(() => this.current()?.documents ?? []);
+  protected readonly photos = computed(() =>
+    (this.current()?.media ?? []).filter((item) => item.type !== 'video'),
+  );
+  /** Photo chosen in the gallery by URL, so the choice survives switching to a model with the same photos. */
+  protected readonly picked = signal<string | null>(null);
+  protected readonly shown = computed(
+    () => this.photos().find((item) => item.url === this.picked()) ?? this.photos()[0] ?? null,
+  );
+  protected readonly visualImages = computed(() => {
+    const shown = this.shown();
+    return shown ? [shown] : this.product.hasValue() ? this.product.value().images : [];
   });
   protected readonly notFound = computed(() => apiErrorStatus(this.product.error()) === 404);
   protected readonly breadcrumbs = computed(() =>
@@ -72,5 +96,13 @@ export class ProductDetailPage {
       if (this.response)
         this.response.status = this.notFound() ? 404 : this.product.error() ? 503 : 200;
     });
+  }
+
+  protected visibleGroups<T>(groups: T[]): T[] {
+    return this.allSpecs() ? groups : groups.slice(0, this.previewGroups);
+  }
+
+  protected specCount(groups: { specs: unknown[] }[]): number {
+    return groups.reduce((sum, group) => sum + group.specs.length, 0);
   }
 }

@@ -25,7 +25,7 @@
 
   --color-surface-dark: var(--qt-surface-dark);
 
-  --radius-card: 18px;
+  --radius-card: 10px;
 
   /* Typography scale: size / line-height / tracking from the design system. */
   --text-hero: 5rem;

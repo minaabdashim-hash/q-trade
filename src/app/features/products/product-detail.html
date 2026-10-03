@@ -1,14 +1,14 @@
-<section class="text-fg min-h-screen bg-white px-6 pt-32 pb-24 lg:px-12">
-  <div class="mx-auto max-w-[1180px]">
+<section class="text-fg min-h-screen bg-white px-6 pt-20 pb-16 lg:px-12">
+  <div class="mx-auto max-w-[1100px]">
     <nav
-      class="text-fg-muted flex flex-wrap items-center gap-2 text-sm"
+      class="text-fg-muted flex flex-wrap items-center gap-1.5 text-xs"
       aria-label="Хлебные крошки"
     >
       <a routerLink="/" class="hover:text-fg">Главная</a>
-      <app-icon name="chevron-right" [size]="14" />
-      <a routerLink="/catalog" class="hover:text-fg">Каталог</a>
+      <span aria-hidden="true">›</span>
+      <a routerLink="/catalog" class="hover:text-fg">Продукты</a>
       @for (item of breadcrumbs(); track item.id) {
-        <app-icon name="chevron-right" [size]="14" />
+        <span aria-hidden="true">›</span>
         <a [routerLink]="['/catalog', item.slug]">{{ item.name }}</a>
       }
     </nav>
@@ -39,7 +39,36 @@
     } @else if (product.hasValue()) {
       @let item = product.value();
       <div class="mt-10 grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
-        <app-product-visual [images]="item.images" [title]="item.title" />
+        <div>
+          <app-product-visual
+            [images]="visualImages()"
+            [title]="item.title"
+            [categoryId]="item.categoryId"
+          />
+          @if (photos().length > 1) {
+            <ul class="mt-3 flex flex-wrap gap-2" aria-label="Фотографии">
+              @for (photo of photos(); track photo.id) {
+                <li>
+                  <button
+                    type="button"
+                    (click)="picked.set(photo.url)"
+                    [attr.aria-label]="'Фото ' + ($index + 1)"
+                    [attr.aria-current]="photo.url === shown()?.url"
+                    class="bg-surface-alt h-14 w-20 overflow-hidden rounded-md border p-1"
+                    [class]="photo.url === shown()?.url ? 'border-fg' : 'border-line'"
+                  >
+                    <img
+                      [src]="photo.url"
+                      alt=""
+                      loading="lazy"
+                      class="h-full w-full object-contain"
+                    />
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
         <div>
           <p class="text-fg-muted text-sm tracking-widest uppercase">{{ item.brand }}</p>
           <h1
@@ -53,6 +82,32 @@
           @if (item.summary) {
             <p class="text-fg-muted mt-5 text-lg leading-relaxed">{{ item.summary }}</p>
           }
+          @if (item.models.length > 1) {
+            <nav class="mt-6" aria-label="Модель">
+              <p class="text-fg-muted text-xs">Модель</p>
+              <ul class="mt-2 flex flex-wrap gap-2">
+                @for (variant of item.models; track variant.id) {
+                  <li>
+                    <a
+                      [routerLink]="[]"
+                      [queryParams]="{ model: variant.model }"
+                      queryParamsHandling="merge"
+                      replaceUrl
+                      [attr.aria-current]="variant.id === current()?.id ? 'true' : null"
+                      class="inline-block rounded-md border px-4 py-1.5 text-xs transition-colors"
+                      [class]="
+                        variant.id === current()?.id
+                          ? 'border-fg bg-fg text-white'
+                          : 'border-line hover:border-fg'
+                      "
+                    >
+                      {{ variant.label }}
+                    </a>
+                  </li>
+                }
+              </ul>
+            </nav>
+          }
           <p class="mt-8 text-2xl font-semibold">
             @if (item.showPrice && item.price !== null) {
               от {{ item.price | price: item.currency : { hideZeroCents: true } }}
@@ -60,9 +115,18 @@
               Цена по запросу
             }
           </p>
-          <dl class="mt-5 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-sm">
-            <dt class="text-fg-muted">Наличие</dt>
-            <dd>{{ availability[item.availability] }}</dd>
+          <a
+            routerLink="/"
+            fragment="request"
+            class="bg-primary hover:bg-primary-hover mt-6 inline-flex h-10 items-center rounded-md px-6 text-sm font-semibold text-white transition-colors"
+          >
+            {{ item.showPrice && item.price !== null ? 'Запросить КП' : 'Запросить цену' }}
+          </a>
+          <dl class="mt-6 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-sm">
+            @if (item.availability !== 'on_order' || item.deliveryTime) {
+              <dt class="text-fg-muted">Наличие</dt>
+              <dd>{{ availability[item.availability] }}</dd>
+            }
             @if (item.deliveryTime) {
               <dt class="text-fg-muted">Поставка</dt>
               <dd>{{ item.deliveryTime }}</dd>
@@ -71,137 +135,79 @@
               <dt class="text-fg-muted">Гарантия</dt>
               <dd>{{ item.warranty }}</dd>
             }
-            @if (item.model) {
-              <dt class="text-fg-muted">Модель</dt>
-              <dd>{{ item.model }}</dd>
+            @if (item.models.length > 1 ? current()?.model : item.model; as article) {
+              <dt class="text-fg-muted">Артикул</dt>
+              <dd>{{ article }}</dd>
             }
           </dl>
         </div>
       </div>
 
-      @if (item.benefits.length) {
-        <section class="mt-20" aria-labelledby="benefits-title">
-          <h2 id="benefits-title" class="text-3xl font-semibold tracking-tight">Преимущества</h2>
-          <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            @for (benefit of item.benefits; track $index) {
-              <li class="rounded-card bg-surface-alt flex gap-3 p-6">
-                <app-icon name="check" [size]="20" class="text-primary" />{{ benefit }}
-              </li>
-            }
-          </ul>
-        </section>
-      }
-      @if (item.variants.length) {
-        <section class="mt-14" aria-labelledby="variants-title">
-          <h2 id="variants-title" class="text-3xl font-semibold tracking-tight">
-            Варианты и диагонали
-          </h2>
-          <ul class="mt-6 flex flex-wrap gap-3">
-            @for (variant of item.variants; track $index) {
-              <li class="rounded-full border border-black/10 px-5 py-3">{{ variant }}</li>
-            }
-          </ul>
-        </section>
-      }
-
-      @for (block of item.blocks; track block.id) {
-        @if (block.type !== 'hero') {
-          <section
-            class="mt-14 rounded-3xl p-8 sm:p-12"
-            [class]="
-              block.background === 'black'
-                ? 'bg-fg text-white'
-                : block.background === 'light_gray'
-                  ? 'bg-surface-alt'
-                  : 'border border-black/10'
-            "
-          >
-            @if (block.eyebrow) {
-              <p class="text-sm tracking-widest uppercase opacity-70">{{ block.eyebrow }}</p>
-            }
-            <h2 class="mt-3 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">
-              {{ block.title }}
-            </h2>
-            @if (block.body) {
-              <p class="mt-5 max-w-3xl text-lg leading-relaxed whitespace-pre-line opacity-80">
-                {{ block.body }}
-              </p>
-            }
-            @if (block.media; as media) {
-              @if (media.type === 'video') {
-                <video
-                  [src]="media.url"
-                  controls
-                  preload="metadata"
-                  class="rounded-card mt-8 w-full"
+      @if (specGroups().length) {
+        <section id="specs" class="mt-16 scroll-mt-16" aria-labelledby="specs-title">
+          <h2 id="specs-title" class="text-4xl font-bold tracking-tight">Характеристики</h2>
+          @if (item.models.length > 1) {
+            <p class="text-fg-muted mt-2 text-sm">{{ item.title }} · {{ current()?.label }}</p>
+          }
+          <div class="mt-5">
+            @for (group of visibleGroups(specGroups()); track group.name) {
+              <div class="border-line grid gap-2 border-t py-4 sm:grid-cols-[200px_1fr] sm:gap-8">
+                <h3 class="text-sm font-bold">{{ group.name }}</h3>
+                <dl
+                  class="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]"
                 >
-                  <track kind="captions" />
-                </video>
-              } @else {
-                <app-product-visual
-                  [images]="[media]"
-                  [title]="block.title"
-                  class="mt-8 max-w-2xl"
-                />
-              }
+                  @for (spec of group.specs; track spec.id) {
+                    <dt class="text-fg-muted">{{ spec.name }}</dt>
+                    <dd>{{ spec.value }}</dd>
+                  }
+                </dl>
+              </div>
             }
-          </section>
-        }
-      }
-
-      @if (item.specGroups.length) {
-        <section class="mt-20" aria-labelledby="specs-title">
-          <h2 id="specs-title" class="text-3xl font-semibold tracking-tight">Характеристики</h2>
-          @for (group of item.specGroups; track group.name) {
-            <h3 class="mt-8 border-b border-black/10 pb-3 text-xl font-semibold">
-              {{ group.name }}
-            </h3>
-            <dl>
-              @for (spec of group.specs; track spec.id) {
-                <div
-                  class="grid gap-2 border-b border-black/5 py-4 sm:grid-cols-[1fr_2fr] sm:gap-8"
-                >
-                  <dt class="text-fg-muted">{{ spec.name }}</dt>
-                  <dd>{{ spec.value }}</dd>
-                </div>
-              }
-            </dl>
+          </div>
+          @if (specGroups().length > previewGroups) {
+            <div class="border-line border-t pt-4">
+              <button
+                type="button"
+                class="text-primary text-sm hover:underline"
+                [attr.aria-expanded]="allSpecs()"
+                (click)="allSpecs.set(!allSpecs())"
+              >
+                {{
+                  allSpecs()
+                    ? 'Свернуть'
+                    : 'Показать все ' + specCount(specGroups()) + ' параметров'
+                }}
+                {{ allSpecs() ? '⌃' : '⌄' }}
+              </button>
+            </div>
           }
         </section>
       }
 
-      @if (item.documents.length) {
-        <section class="mt-20" aria-labelledby="documents-title">
-          <h2 id="documents-title" class="text-3xl font-semibold tracking-tight">Документы</h2>
-          <ul class="mt-6 space-y-4">
-            @for (document of item.documents; track document.id) {
-              <li
-                class="rounded-card bg-surface-alt flex flex-wrap items-center justify-between gap-3 p-6"
-              >
-                <div>
-                  <h3 class="font-medium">{{ document.title }}</h3>
-                  <span class="text-fg-muted mt-1 block text-sm">{{
-                    document.language.toUpperCase()
-                  }}</span>
-                </div>
-                @if (document.downloadUrl) {
+      @if (documents().length) {
+        <section class="mt-14" aria-labelledby="documents-title">
+          <h2 id="documents-title" class="text-3xl font-bold tracking-tight">Загрузки</h2>
+          <ul class="mt-5 grid gap-3 sm:grid-cols-2">
+            @for (document of documents(); track document.id) {
+              <li>
+                @let href = document.downloadUrl ?? document.externalUrl;
+                @if (href) {
                   <a
-                    [href]="document.downloadUrl"
+                    [href]="href"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="text-primary"
-                    >Открыть документ</a
+                    class="border-line hover:border-primary flex items-center justify-between gap-3 rounded-lg border bg-white px-4 py-3 text-sm transition-colors"
                   >
-                } @else if (document.externalUrl) {
-                  <a
-                    [href]="document.externalUrl"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-primary"
-                    >На сайте производителя ↗</a
-                  >
+                    <span>📄 {{ document.title }} · {{ document.language.toUpperCase() }}</span>
+                    <span class="text-primary" aria-hidden="true">↓</span>
+                  </a>
                 } @else {
-                  <span class="text-fg-muted text-sm">Файл готовится</span>
+                  <span
+                    class="border-line text-fg-muted flex items-center justify-between gap-3 rounded-lg border border-dashed px-4 py-3 text-sm"
+                  >
+                    <span>📄 {{ document.title }} · {{ document.language.toUpperCase() }}</span>
+                    <span class="text-xs">Файл готовится</span>
+                  </span>
                 }
               </li>
             }
@@ -210,17 +216,69 @@
       }
 
       @if (related.hasValue() && related.value().length) {
-        <section class="mt-20" aria-labelledby="related-title">
-          <h2 id="related-title" class="text-3xl font-semibold tracking-tight">Связанные товары</h2>
-          <div class="bg-surface-alt mt-6 grid gap-6 rounded-3xl p-6 sm:grid-cols-2">
-            @for (relatedProduct of related.value(); track relatedProduct.id) {
-              <app-product-card [product]="relatedProduct" />
+        <section class="mt-14" aria-labelledby="related-title">
+          <h2 id="related-title" class="text-3xl font-bold tracking-tight">С этим покупают</h2>
+          <ul class="mt-5 grid gap-3 sm:grid-cols-3">
+            @for (relatedProduct of related.value().slice(0, 3); track relatedProduct.id) {
+              <li>
+                <a
+                  [routerLink]="['/products', relatedProduct.slug]"
+                  class="rounded-card bg-surface-alt group flex h-full flex-col items-center gap-4 px-4 py-6 text-center"
+                >
+                  <span class="flex h-14 items-center">
+                    @if (relatedProduct.images[0]; as image) {
+                      <img
+                        [src]="image.url"
+                        [alt]="relatedProduct.title"
+                        class="max-h-14 object-contain"
+                      />
+                    } @else {
+                      <span
+                        class="text-[40px]"
+                        [class]="deviceShape(relatedProduct.categoryId)"
+                      ></span>
+                    }
+                  </span>
+                  <span class="group-hover:text-primary text-sm font-bold transition-colors">
+                    {{ relatedProduct.title }}
+                  </span>
+                </a>
+              </li>
             }
-          </div>
+          </ul>
         </section>
       } @else if (related.error()) {
         <p class="text-fg-muted mt-12">Связанные товары сейчас недоступны.</p>
       }
+
+      <!-- Final call to action. -->
+      <div
+        class="rounded-card bg-surface-dark mt-10 flex flex-wrap items-center justify-between gap-4 px-6 py-6 text-white"
+      >
+        <div>
+          <p class="text-2xl font-bold">Готовы обсудить проект?</p>
+          <p class="mt-1 text-sm text-white/70">
+            Пришлём КП за 24 часа. Покажем вживую в шоуруме в Алматы.
+          </p>
+        </div>
+        <div class="flex gap-3">
+          <a
+            routerLink="/"
+            fragment="request"
+            class="bg-primary hover:bg-primary-hover rounded-md px-5 py-2.5 text-sm font-semibold"
+          >
+            Запросить цену
+          </a>
+          <a
+            href="https://wa.me/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="rounded-md border border-[#16a34a] px-5 py-2.5 text-sm font-semibold text-[#22c55e] hover:bg-[#16a34a]/10"
+          >
+            WhatsApp
+          </a>
+        </div>
+      </div>
     }
   </div>
 </section>

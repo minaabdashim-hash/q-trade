@@ -29,6 +29,9 @@ app.use('/api', async (req, res) => {
       redirect: 'error',
     });
     res.status(response.status);
+    // Catalog files are named by content hash, so a found file can be cached forever.
+    if (response.ok && req.path.startsWith('/files/'))
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json');
     res.send(Buffer.from(await response.arrayBuffer()));
   } catch {
