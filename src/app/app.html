@@ -1,0 +1,71 @@
+<app-header />
+
+<main>
+  <router-outlet />
+</main>
+
+<footer class="border-line bg-surface-alt text-fg border-t px-6 py-8">
+  <div class="mx-auto grid max-w-[1100px] grid-cols-2 gap-8 text-xs md:grid-cols-5">
+    @for (col of footerColumns; track col.title) {
+      <div>
+        <p class="font-bold">{{ col.title }}</p>
+        <ul class="text-fg-muted mt-1 space-y-0.5">
+          @for (item of col.items; track item) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+  <p class="text-fg-muted mx-auto mt-8 max-w-[1100px] text-xs">
+    Официальный дистрибьютор MAXHUB в РК
+  </p>
+</footer>
+
+@if (showCookieNotice()) {
+  <div
+    class="text-fg fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] bg-white/75 backdrop-blur-xl backdrop-saturate-150"
+    role="region"
+    aria-label="Cookie notice"
+  >
+    <div class="mx-auto max-w-[1500px] px-6 py-5 lg:px-10">
+      <div class="flex items-start gap-6">
+        <p class="text-fg-muted max-w-3xl text-[0.9rem] leading-relaxed">
+          This site uses cookies to personalise your experience and analyse site traffic. By
+          clicking ACCEPT or continuing to browse the site, you are agreeing to our use of cookies.
+          See our <a routerLink="/" class="text-primary hover:underline">Cookies</a> and
+          <a routerLink="/" class="text-primary hover:underline">Privacy Policy</a> here
+        </p>
+        <button
+          type="button"
+          class="text-fg-muted hover:text-fg ml-auto shrink-0"
+          aria-label="Close cookie notice"
+          (click)="dismissCookieNotice()"
+        >
+          <app-icon name="x" [size]="18" />
+        </button>
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          class="bg-primary hover:bg-primary-hover inline-flex h-10 items-center gap-1.5 rounded-full px-5 text-[0.95rem] font-medium text-white"
+          (click)="dismissCookieNotice()"
+        >
+          Yes, accept all
+          <app-icon name="chevron-right" [size]="15" />
+        </button>
+        <button
+          type="button"
+          class="text-fg inline-flex h-10 items-center gap-1.5 rounded-full border border-black/15 px-5 text-[0.95rem] font-medium hover:bg-black/5"
+          (click)="dismissCookieNotice()"
+        >
+          No thanks, only essential cookies
+          <app-icon name="chevron-right" [size]="15" />
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<app-toast-host />

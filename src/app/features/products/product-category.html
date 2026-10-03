@@ -1,0 +1,140 @@
+<section class="bg-surface-alt text-fg min-h-screen px-6 pt-32 pb-24 lg:px-12">
+  <div class="mx-auto max-w-[1400px]">
+    <nav
+      class="text-fg-muted flex flex-wrap items-center gap-2 text-sm"
+      aria-label="Хлебные крошки"
+    >
+      <a routerLink="/" class="hover:text-fg">Главная</a>
+      <app-icon name="chevron-right" [size]="14" />
+      <a routerLink="/catalog" class="hover:text-fg">Каталог</a>
+      @for (item of breadcrumbs(); track item.id) {
+        <app-icon name="chevron-right" [size]="14" />
+        <a
+          [routerLink]="['/catalog', item.slug]"
+          [attr.aria-current]="item.id === category()?.id ? 'page' : null"
+          >{{ item.name }}</a
+        >
+      }
+    </nav>
+
+    @if (notFound()) {
+      <h1 class="mt-10 text-4xl font-semibold">Категория не найдена</h1>
+      <p class="text-fg-muted mt-4">Эта категория недоступна или не существует.</p>
+      <a routerLink="/catalog" class="text-primary mt-6 inline-block">Перейти в каталог</a>
+    } @else {
+      <h1
+        class="mt-6 max-w-5xl text-[clamp(2.5rem,5vw,4.5rem)] leading-tight font-semibold tracking-tight"
+      >
+        {{ category()?.name ?? 'Каталог' }}
+      </h1>
+      @if (category()?.description) {
+        <p class="text-fg-muted mt-5 max-w-3xl text-xl">{{ category()?.description }}</p>
+      }
+
+      @if (children().length) {
+        <nav class="mt-8 flex flex-wrap gap-3" aria-label="Подкатегории">
+          @for (item of children(); track item.id) {
+            <a
+              [routerLink]="['/catalog', item.slug]"
+              class="hover:border-primary hover:text-primary rounded-full border border-black/10 bg-white px-5 py-3"
+            >
+              {{ item.name }} <span class="text-fg-muted ml-2">{{ item.productCount }}</span>
+            </a>
+          }
+        </nav>
+      }
+
+      <div class="mt-10 flex flex-wrap items-end justify-between gap-4">
+        <form class="flex w-full max-w-lg gap-2" (submit)="search($event, searchInput.value)">
+          <label class="flex-1">
+            <span class="sr-only">Поиск по названию или модели</span>
+            <input
+              #searchInput
+              type="search"
+              name="q"
+              maxlength="200"
+              [value]="query().q ?? ''"
+              placeholder="Поиск по названию или модели"
+              class="w-full rounded-xl border border-black/10 bg-white px-4 py-3"
+            />
+          </label>
+          <button
+            type="submit"
+            class="bg-primary hover:bg-primary-hover rounded-xl px-5 py-3 text-white"
+          >
+            Найти
+          </button>
+        </form>
+        <label class="flex items-center gap-3 text-sm">
+          Сортировка
+          <select
+            [value]="query().sort"
+            (change)="sort($event)"
+            class="rounded-xl border border-black/10 bg-white px-4 py-3"
+          >
+            @for (item of sorts; track item.value) {
+              <option [value]="item.value">{{ item.label }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <div
+        class="mt-8"
+        aria-live="polite"
+        [attr.aria-busy]="products.isLoading() || service.categoryList.isLoading()"
+      >
+        @if (products.isLoading() || service.categoryList.isLoading()) {
+          <div class="text-fg-muted flex items-center gap-3 py-12">
+            <app-spinner label="Загрузка каталога" /> Загрузка каталога…
+          </div>
+        } @else if (products.error() || service.categoryList.error()) {
+          <div role="alert" class="rounded-card bg-white p-8">
+            <h2 class="text-2xl font-semibold">Не удалось загрузить каталог</h2>
+            <p class="text-fg-muted mt-3">Попробуйте ещё раз через некоторое время.</p>
+            <button type="button" (click)="retry()" class="text-primary mt-5">Повторить</button>
+          </div>
+        } @else if (products.hasValue()) {
+          <p class="text-fg-muted mb-5 text-sm">Найдено товаров: {{ products.value().total }}</p>
+          <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            @for (product of products.value().items; track product.id) {
+              <app-product-card [product]="product" />
+            } @empty {
+              <p class="rounded-card text-fg-muted col-span-full bg-white p-10">
+                @if (query().q) {
+                  По вашему запросу товаров не найдено.
+                } @else {
+                  В этой категории пока нет опубликованных товаров.
+                }
+              </p>
+            }
+          </div>
+          @if (pages() > 1 || query().page > 1) {
+            <nav
+              class="mt-10 flex items-center justify-center gap-6"
+              aria-label="Страницы каталога"
+            >
+              <button
+                type="button"
+                (click)="changePage(query().page - 1)"
+                [disabled]="query().page === 1"
+                class="text-primary disabled:text-fg-muted"
+              >
+                Назад
+              </button>
+              <span>Страница {{ query().page }} из {{ pages() }}</span>
+              <button
+                type="button"
+                (click)="changePage(query().page + 1)"
+                [disabled]="query().page >= pages()"
+                class="text-primary disabled:text-fg-muted"
+              >
+                Далее
+              </button>
+            </nav>
+          }
+        }
+      </div>
+    }
+  </div>
+</section>
