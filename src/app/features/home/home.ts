@@ -1,11 +1,15 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { ProductService } from '../../core/services/product.service';
 import { SeoService } from '../../core/services/seo.service';
+import { ProductVisual } from '../products/product-card';
 
 type Device = 'panel' | 'led' | 'bar' | 'speaker';
 
 // ponytail: static content from the design mock, move to the admin/API when it can drive the home page.
 const TILES: {
+  slug: string;
   title: string;
   subtitle: string;
   links: string[];
@@ -14,6 +18,7 @@ const TILES: {
   tall: boolean;
 }[] = [
   {
+    slug: 'education',
     title: 'Для образования',
     subtitle: 'Панели B5 и F5. Урок, который хочется слушать.',
     links: ['Подробнее', 'Решения для школ'],
@@ -22,6 +27,7 @@ const TILES: {
     tall: true,
   },
   {
+    slug: 'led',
     title: 'LED-экраны',
     subtitle: 'Raptor V3. Конференц-зал без границ.',
     links: ['Подробнее'],
@@ -30,6 +36,7 @@ const TILES: {
     tall: true,
   },
   {
+    slug: 'xbar',
     title: 'XBar W70',
     subtitle: 'Видеобар для средних комнат.',
     links: [],
@@ -38,6 +45,7 @@ const TILES: {
     tall: false,
   },
   {
+    slug: 'speakerphone',
     title: 'Спикерфоны BM45',
     subtitle: 'Каждое слово — чётко.',
     links: [],
@@ -47,13 +55,31 @@ const TILES: {
   },
 ];
 
-const ROOMS = [
-  { name: 'Open space', size: '2–4 чел.' },
-  { name: 'Малая', size: '3–7 чел.' },
-  { name: 'Средняя', size: '8–12 чел.' },
-  { name: 'Signature', size: '6–10 чел.' },
-  { name: 'Большая', size: 'до 20 чел.' },
+type RoomSize = 'small' | 'medium' | 'large';
+type Platform = 'windows' | 'android';
+
+const ROOMS: { key: RoomSize; name: string }[] = [
+  { key: 'small', name: 'Малая' },
+  { key: 'medium', name: 'Средняя' },
+  { key: 'large', name: 'Большая' },
 ];
+const PLATFORMS: { key: Platform; name: string }[] = [
+  { key: 'windows', name: 'Windows' },
+  { key: 'android', name: 'Android' },
+];
+// ponytail: kits follow the "для малых / средних / больших комнат" wording of the product summaries
+// (the catalog has no capacities); move to an API tag when the data has one.
+const KITS: Record<RoomSize, Record<Platform, string[]>> = {
+  small: { windows: ['xt20-vb-kit'], android: ['xbar-v50-kit-android'] },
+  medium: {
+    windows: ['xt20-vb-kit', 'xbar-w70-kit-windows', 'xt20-ps-kit'],
+    android: ['xbar-v50-kit-android', 'xbar-v70-kit-android'],
+  },
+  large: {
+    windows: ['xbar-w70-kit-windows', 'xt20-ps-kit'],
+    android: ['xbar-v70-kit-android'],
+  },
+};
 
 // ponytail: sample figures from the mock, replace with real ones from the customer.
 const STATS = [
@@ -86,12 +112,34 @@ const ROOM_TYPES = ['Переговорная', 'Класс / аудитория
 @Component({
   selector: 'app-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [RouterLink, ProductVisual],
   templateUrl: './home.html',
 })
 export class Home {
-  protected readonly tiles = TILES;
+  private readonly service = inject(ProductService);
+  /** Tile photos come from the category list the header already loads; no photo keeps the CSS device. */
+  protected readonly tiles = computed(() => {
+    const categories = this.service.categoryList.hasValue()
+      ? this.service.categoryList.value()
+      : [];
+    const images = new Map(categories.map((category) => [category.slug, category.imageUrl]));
+    return TILES.map((tile) => ({ ...tile, image: images.get(tile.slug) ?? null }));
+  });
   protected readonly rooms = ROOMS;
+  protected readonly platforms = PLATFORMS;
+  protected readonly size = signal<RoomSize>('medium');
+  protected readonly platform = signal<Platform>('windows');
+  protected readonly kits = rxResource({
+    params: () => this.service.language(),
+    stream: ({ params }) =>
+      this.service.list({ category: 'video-conferencing', page: 1, size: 60, lang: params }),
+  });
+  protected readonly shown = computed(() => {
+    const items = this.kits.hasValue() ? this.kits.value().items : [];
+    return KITS[this.size()][this.platform()].flatMap((slug) =>
+      items.filter((item) => item.slug === slug),
+    );
+  });
   protected readonly stats = STATS;
   protected readonly projects = PROJECTS;
   protected readonly roomTypes = ROOM_TYPES;

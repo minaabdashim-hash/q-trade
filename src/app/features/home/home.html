@@ -34,12 +34,12 @@
 <!-- 2. Promo tiles, two per row, light and dark alternating. -->
 <section class="bg-white p-3">
   <div class="mx-auto grid max-w-[1440px] gap-3 md:grid-cols-2">
-    @for (tile of tiles; track tile.title) {
+    @for (tile of tiles(); track tile.title) {
       <a
-        routerLink="/catalog"
-        class="rounded-card flex flex-col items-center px-6 pt-7 text-center"
+        [routerLink]="['/catalog', tile.slug]"
+        class="rounded-card group flex flex-col items-center px-6 pt-7 text-center"
         [class]="
-          (tile.dark ? 'bg-surface-dark text-white ' : 'bg-surface-alt text-fg ') +
+          (tile.dark ? 'bg-[#2c2c2e] text-white ' : 'bg-surface-alt text-fg ') +
           (tile.tall ? 'min-h-[400px]' : 'min-h-[300px]')
         "
       >
@@ -48,7 +48,10 @@
           {{ tile.subtitle }}
         </p>
         @if (tile.links.length) {
-          <p class="text-primary mt-3 flex gap-5 text-sm">
+          <p
+            class="mt-3 flex gap-5 text-sm"
+            [class]="tile.dark ? 'text-[#2997ff]' : 'text-primary'"
+          >
             @for (link of tile.links; track link) {
               <span>{{ link }} ›</span>
             }
@@ -56,28 +59,37 @@
         }
 
         <div class="mt-auto flex w-full justify-center pt-6 pb-8">
-          @switch (tile.device) {
-            @case ('panel') {
-              <div class="h-36 w-64 rounded-lg bg-[#1d1d1f] p-1.5 shadow-xl">
+          @if (tile.image; as image) {
+            <img
+              [src]="image"
+              [alt]="tile.title"
+              class="w-full object-contain transition-transform duration-500 ease-out will-change-transform group-hover:scale-110"
+              [class]="tile.tall ? 'h-64' : 'h-52'"
+            />
+          } @else {
+            @switch (tile.device) {
+              @case ('panel') {
+                <div class="h-36 w-64 rounded-lg bg-[#1d1d1f] p-1.5 shadow-xl">
+                  <div
+                    class="size-full rounded-md bg-gradient-to-br from-[#16a34a] to-[#22b8e0]"
+                  ></div>
+                </div>
+              }
+              @case ('led') {
                 <div
-                  class="size-full rounded-md bg-gradient-to-br from-[#16a34a] to-[#22b8e0]"
+                  class="h-36 w-64 rounded-md border-2 border-[#2a2a2e] bg-gradient-to-r from-[#ff7a1a] via-[#e5502e] to-[#6b2fd6]"
                 ></div>
-              </div>
-            }
-            @case ('led') {
-              <div
-                class="h-36 w-64 rounded-md border-2 border-[#2a2a2e] bg-gradient-to-r from-[#ff7a1a] via-[#e5502e] to-[#6b2fd6]"
-              ></div>
-            }
-            @case ('bar') {
-              <div class="flex h-9 w-72 items-center justify-center rounded-md bg-[#1d1d1f]">
-                <span class="bg-primary size-3.5 rounded-full"></span>
-              </div>
-            }
-            @case ('speaker') {
-              <div
-                class="size-24 rounded-full bg-[radial-gradient(circle_at_35%_30%,#4a4a4f,#111)] shadow-xl"
-              ></div>
+              }
+              @case ('bar') {
+                <div class="flex h-9 w-72 items-center justify-center rounded-md bg-[#1d1d1f]">
+                  <span class="bg-primary size-3.5 rounded-full"></span>
+                </div>
+              }
+              @case ('speaker') {
+                <div
+                  class="size-24 rounded-full bg-[radial-gradient(circle_at_35%_30%,#4a4a4f,#111)] shadow-xl"
+                ></div>
+              }
             }
           }
         </div>
@@ -86,21 +98,68 @@
   </div>
 </section>
 
-<!-- 3. Room solutions. -->
+<!-- 3. Room kit picker: room size and platform choose real Teams Rooms kits. -->
 <section class="bg-surface-alt px-6 pt-16 pb-12 text-center">
   <h2 class="text-4xl font-bold tracking-tight md:text-5xl">Под любую комнату.</h2>
   <p class="text-fg-muted mt-2">
-    Готовые комплекты Microsoft Teams Rooms — от переговорки на 3 человек до зала на 20.
+    Готовые комплекты Microsoft Teams Rooms — для малых, средних и больших комнат.
   </p>
-  <div class="mx-auto mt-8 grid max-w-[1100px] grid-cols-2 gap-3 md:grid-cols-5">
-    @for (room of rooms; track room.name) {
-      <a routerLink="/catalog" class="rounded-card bg-white p-3 text-center">
-        <div
-          class="h-20 rounded-lg bg-gradient-to-b from-[#efe9de] from-60% to-[#b9a58c] to-60%"
-        ></div>
-        <p class="mt-3 text-sm font-semibold">{{ room.name }}</p>
-        <p class="text-fg-muted text-xs">{{ room.size }}</p>
+
+  <div class="mt-8 flex flex-col items-center gap-3">
+    <div role="group" aria-label="Размер комнаты" class="inline-flex rounded-full bg-white p-1">
+      @for (room of rooms; track room.key) {
+        <button
+          type="button"
+          (click)="size.set(room.key)"
+          [attr.aria-pressed]="size() === room.key"
+          class="h-9 rounded-full px-6 text-sm font-medium transition-colors"
+          [class]="size() === room.key ? 'bg-fg text-white' : 'text-fg hover:bg-surface-alt'"
+        >
+          {{ room.name }}
+        </button>
+      }
+    </div>
+    <div role="group" aria-label="Платформа" class="text-fg-muted flex items-center gap-4 text-xs">
+      @for (item of platforms; track item.key) {
+        <button
+          type="button"
+          (click)="platform.set(item.key)"
+          [attr.aria-pressed]="platform() === item.key"
+          class="border-b pb-0.5 transition-colors"
+          [class]="
+            platform() === item.key
+              ? 'border-fg text-fg font-semibold'
+              : 'hover:text-fg border-transparent'
+          "
+        >
+          {{ item.name }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="mx-auto mt-8 flex max-w-[1100px] flex-wrap justify-center gap-3" aria-live="polite">
+    @for (kit of shown(); track kit.id) {
+      <a
+        [routerLink]="['/products', kit.slug]"
+        class="rounded-card group w-full bg-white p-3 text-left sm:w-[17rem]"
+      >
+        <app-product-visual
+          [images]="kit.images"
+          [title]="kit.title"
+          [compact]="true"
+          [categoryId]="kit.categoryId"
+        />
+        <h3 class="mt-3 text-sm font-bold">{{ kit.title }}</h3>
+        @if (kit.summary) {
+          <p class="text-fg-muted mt-1 line-clamp-4 text-xs">{{ kit.summary }}</p>
+        }
+        <p class="text-primary mt-2 text-xs">Подробнее ›</p>
       </a>
+    } @empty {
+      <p class="text-fg-muted text-sm">
+        {{ kits.error() ? 'Комплекты временно недоступны.' : 'Загрузка комплектов…' }}
+      </p>
     }
   </div>
 </section>
