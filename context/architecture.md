@@ -71,7 +71,7 @@ src/
   появляется при следующем запросе без пересборки.
 - `src/server.ts` поднимает Express: сначала прокси `/api`, затем статика `dist/browser`,
   затем Angular SSR. Прокси пропускает только `GET/HEAD/OPTIONS` (иначе 405), ставит
-  `Cache-Control: no-store`, таймаут 10 с, при сбое отдаёт 503 `API_UNAVAILABLE`.
+  `Cache-Control: no-store`, таймаут 60 с (бесплатный API на Render просыпается около минуты), при сбое отдаёт 503 `API_UNAVAILABLE`.
 - `apiPrefixInterceptor` на сервере через `inject(REQUEST)` превращает относительный `/api/...`
   в абсолютный URL — иначе SSR-запрос некуда отправлять.
 - Страницы задают HTTP-статус ответа через `inject(RESPONSE_INIT)`: несуществующий товар

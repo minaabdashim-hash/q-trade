@@ -25,7 +25,8 @@ app.use('/api', async (req, res) => {
   try {
     const response = await fetch(new URL(req.originalUrl, apiOrigin), {
       method: req.method,
-      signal: AbortSignal.timeout(10000),
+      // Long enough for a free-tier API to wake from sleep (~1 min on Render).
+      signal: AbortSignal.timeout(60000),
       redirect: 'error',
     });
     res.status(response.status);
