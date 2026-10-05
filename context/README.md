@@ -9,6 +9,7 @@
 | [backend-and-data.md](backend-and-data.md) | Бэкенд `Q-trade-business`, HTTP API, PostgreSQL, правила данных |
 | [design-system.md](design-system.md)       | Токены, типографика, компоненты, поведение шапки и меню         |
 | [conventions.md](conventions.md)           | Соглашения кода, проверки, команды, подводные камни             |
+| [deploy.md](deploy.md)                     | Деплой на Render + Neon: шаги, переменные, ограничения free     |
 
 Источники истины вне этой папки:
 
