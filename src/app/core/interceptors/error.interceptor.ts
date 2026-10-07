@@ -15,7 +15,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         if (error.status === 401 && auth.isAuthenticated()) {
           auth.logout('/auth/login');
         }
-        notifications.error(messageFor(error));
+        // The sign-in form shows its own error next to the fields.
+        if (!req.url.endsWith('/auth/login')) notifications.error(messageFor(error));
       }
       return throwError(() => error);
     }),
@@ -31,7 +32,7 @@ function messageFor(error: HttpErrorResponse): string {
     case 0:
       return 'Не удалось связаться с сервером. Попробуйте ещё раз.';
     case 401:
-      return 'Your session expired. Please sign in again.';
+      return 'Сессия истекла. Войдите снова.';
     case 403:
       return 'You do not have permission to do that.';
     case 404:

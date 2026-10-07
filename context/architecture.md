@@ -16,7 +16,7 @@ src/
 │   │   ├── models/              типы DTO + чистые функции (categoryPath, totalPages, toCartItem)
 │   │   ├── services/            ApiService, ProductService, SeoService, AuthService, …
 │   │   ├── interceptors/        apiPrefix, error (+ неиспользуемый auth)
-│   │   └── guards/              authGuard, adminGuard — пока не навешаны ни на один роут
+│   │   └── guards/              authGuard — на /cart и /account/orders
 │   ├── features/                страницы, по одной папке на раздел
 │   │   ├── home/                главная: статический маркетинговый контент
 │   │   ├── products/            каталог, категория, карточка товара, заглушки устройств
@@ -39,7 +39,9 @@ src/
 | `/catalog`                      | `features/products/product-category.ts` | Все опубликованные товары и корневые категории                 |
 | `/catalog/:slug`                | тот же компонент                        | Категория, её подкатегории и товары всей ветки                 |
 | `/products/:slug`               | `features/products/product-detail.ts`   | Карточка: модель `?model=`, галерея, характеристики, документы |
-| `/auth/login`, `/auth/register` | `features/auth/auth-page.ts`            | Режим приходит через `data: { mode }`                          |
+| `/auth/login`, `/auth/register` | `features/auth/auth-page.ts`            | Режим приходит через `data: { mode }`; вход ведёт в `/catalog` |
+| `/cart`                         | `features/b2b/cart-page.ts`             | `authGuard`, `RenderMode.Client`; оформление заказа            |
+| `/account/orders`               | `features/b2b/orders-page.ts`           | `authGuard`, `RenderMode.Client`; история заказов              |
 
 Параметры маршрута приходят в компонент как входы: включён `withComponentInputBinding()`,
 поэтому `readonly slug = input.required<string>()` заполняется из `:slug` автоматически.
@@ -70,7 +72,8 @@ src/
 - `app.routes.server.ts`: `RenderMode.Server` для `**`. Пререндера нет — опубликованный товар
   появляется при следующем запросе без пересборки.
 - `src/server.ts` поднимает Express: сначала прокси `/api`, затем статика `dist/browser`,
-  затем Angular SSR. Прокси пропускает только `GET/HEAD/OPTIONS` (иначе 405), ставит
+  затем Angular SSR. Прокси пропускает `GET/HEAD/OPTIONS/POST` (иначе 405), передаёт `Authorization`,
+  `Content-Type` и тело (вход и заказы B2B), ставит
   `Cache-Control: no-store`, таймаут 60 с (бесплатный API на Render просыпается около минуты), при сбое отдаёт 503 `API_UNAVAILABLE`.
 - `apiPrefixInterceptor` на сервере через `inject(REQUEST)` превращает относительный `/api/...`
   в абсолютный URL — иначе SSR-запрос некуда отправлять.
@@ -86,7 +89,19 @@ src/
 - сигналы внутри компонентов (открытое меню, развёрнутые характеристики);
 - `rxResource` для серверных данных (`value()`, `hasValue()`, `error()`, `isLoading()`);
 - URL как источник фильтров каталога;
-- `@ngrx/signals` подключён и используется только в неактивном `CartStore`.
+- `@ngrx/signals` — `CartStore` (B2B-корзина, строка = артикул модели, хранится в `localStorage`).
+
+## B2B: сессия и цены
+
+- `AuthService` хранит `{ token, expiresAt, user }` в `localStorage` (`qt.session`), `authInterceptor`
+  добавляет `Authorization: Bearer` к запросам API. С токеном API отдаёт цены (`showPrice: true`) — те же
+  компоненты каталога показывают их и кнопки заказа, отдельных B2B-копий страниц нет.
+- Сервер токена не видит, поэтому SSR всегда анонимный (без цен). Чтобы клиент вошедшего партнёра не
+  взял анонимный ответ из transfer cache, в `app.config.ts` кэш отключён при наличии `qt.session`;
+  после гидратации каталог перезапрашивается уже с ценами.
+- 401 от API → `errorInterceptor` разлогинивает. Выход отзывает токен (`POST /auth/logout`) и чистит корзину.
+- Серия заказывается по модели: в карточке каталога кнопка ведёт на страницу товара («Выбрать модель»),
+  «В корзину» — там, по `?model=`. Цена пока одна на товар; цену в заказе фиксирует API из БД.
 
 ## SEO
 

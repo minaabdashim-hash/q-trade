@@ -1,0 +1,161 @@
+<section class="text-fg min-h-screen bg-white px-6 pt-20 pb-16 lg:px-12">
+  <div class="mx-auto max-w-[1100px]">
+    <p class="text-fg-muted text-xs font-semibold tracking-wide uppercase">
+      B2B Shop · {{ auth.user()?.company }}
+    </p>
+    <h1 class="mt-1 text-4xl font-bold tracking-[-0.02em] md:text-5xl">Корзина</h1>
+
+    @if (placed(); as order) {
+      <div class="rounded-card bg-surface-alt mt-10 p-8 text-center sm:p-12" role="status">
+        <span
+          class="text-success mx-auto inline-flex size-14 items-center justify-center rounded-full bg-white"
+        >
+          <app-icon name="check" [size]="28" />
+        </span>
+        <h2 class="mt-5 text-2xl font-semibold">Заказ № {{ order.id }} отправлен</h2>
+        <p class="text-fg-muted mx-auto mt-2 max-w-md text-sm">
+          Сумма {{ order.total | price: order.currency : { hideZeroCents: true } }}. Менеджер
+          подтвердит наличие, сроки поставки и пришлёт счёт.
+        </p>
+        <div class="mt-6 flex flex-wrap justify-center gap-3">
+          <a
+            routerLink="/account/orders"
+            class="bg-primary hover:bg-primary-hover inline-flex h-10 items-center rounded-md px-6 text-sm font-semibold text-white transition-colors"
+            >Мои заказы</a
+          >
+          <a
+            routerLink="/catalog"
+            class="border-line hover:border-fg inline-flex h-10 items-center rounded-md border bg-white px-6 text-sm font-medium transition-colors"
+            >Продолжить покупки</a
+          >
+        </div>
+      </div>
+    } @else if (cart.isEmpty()) {
+      <div class="rounded-card bg-surface-alt mt-10 p-8 text-center sm:p-12">
+        <span class="text-fg-muted inline-flex"><app-icon name="shopping-cart" [size]="40" /></span>
+        <h2 class="mt-4 text-2xl font-semibold">Корзина пуста</h2>
+        <p class="text-fg-muted mt-2 text-sm">Добавьте товары из каталога — цены уже видны.</p>
+        <a
+          routerLink="/catalog"
+          class="bg-primary hover:bg-primary-hover mt-6 inline-flex h-10 items-center rounded-md px-6 text-sm font-semibold text-white transition-colors"
+          >Перейти в каталог</a
+        >
+      </div>
+    } @else {
+      <div class="mt-10 grid gap-10 lg:grid-cols-[1fr_340px]">
+        <ul class="divide-line border-line divide-y border-y">
+          @for (item of cart.items(); track item.model) {
+            <li class="grid grid-cols-[96px_1fr] gap-5 py-6 sm:grid-cols-[128px_1fr_auto]">
+              <a
+                [routerLink]="['/products', item.slug]"
+                [queryParams]="item.modelLabel ? { model: item.model } : {}"
+                class="group block"
+              >
+                <app-product-visual
+                  [images]="images(item)"
+                  [title]="item.title"
+                  [categoryId]="item.categoryId"
+                  [compact]="true"
+                />
+              </a>
+              <div class="min-w-0">
+                <a
+                  [routerLink]="['/products', item.slug]"
+                  [queryParams]="item.modelLabel ? { model: item.model } : {}"
+                  class="hover:text-primary font-semibold tracking-tight transition-colors"
+                  >{{ item.title }}</a
+                >
+                <p class="text-fg-muted mt-1 text-sm">
+                  @if (item.modelLabel) {
+                    {{ item.modelLabel }} · {{ item.model }} ·
+                  }
+                  {{ item.price | price: item.currency : { hideZeroCents: true } }} за шт.
+                </p>
+                <div class="mt-4 flex items-center gap-4">
+                  <div class="border-line inline-flex h-9 items-center rounded-md border">
+                    <button
+                      type="button"
+                      class="text-fg-muted hover:text-fg inline-flex h-full w-9 items-center justify-center disabled:opacity-40"
+                      [disabled]="item.quantity <= 1"
+                      [attr.aria-label]="'Уменьшить количество: ' + item.title"
+                      (click)="cart.setQuantity(item.model, item.quantity - 1)"
+                    >
+                      <app-icon name="minus" [size]="14" />
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      [max]="max"
+                      inputmode="numeric"
+                      class="h-full w-14 [appearance:textfield] bg-transparent text-center text-sm outline-none [&::-webkit-inner-spin-button]:appearance-none"
+                      [value]="item.quantity"
+                      [attr.aria-label]="'Количество: ' + item.title"
+                      (change)="setQuantity(item.model, $any($event.target).value)"
+                    />
+                    <button
+                      type="button"
+                      class="text-fg-muted hover:text-fg inline-flex h-full w-9 items-center justify-center disabled:opacity-40"
+                      [disabled]="item.quantity >= max"
+                      [attr.aria-label]="'Увеличить количество: ' + item.title"
+                      (click)="cart.setQuantity(item.model, item.quantity + 1)"
+                    >
+                      <app-icon name="plus" [size]="14" />
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    class="text-fg-muted hover:text-danger text-xs transition-colors"
+                    (click)="cart.remove(item.model)"
+                  >
+                    Удалить
+                  </button>
+                </div>
+              </div>
+              <p class="col-start-2 font-semibold sm:col-start-3 sm:text-right">
+                {{ item.price * item.quantity | price: item.currency : { hideZeroCents: true } }}
+              </p>
+            </li>
+          }
+        </ul>
+
+        <aside class="rounded-card bg-surface-alt h-fit p-6 lg:sticky lg:top-20">
+          <h2 class="text-lg font-semibold">Ваш заказ</h2>
+          <dl class="mt-4 space-y-2 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-fg-muted">Товаров</dt>
+              <dd>{{ cart.count() }} шт.</dd>
+            </div>
+            <div class="border-line flex items-baseline justify-between border-t pt-3">
+              <dt class="font-semibold">Итого</dt>
+              <dd class="text-2xl font-semibold">
+                {{ cart.total() | price: cart.currency() : { hideZeroCents: true } }}
+              </dd>
+            </div>
+          </dl>
+          <p class="text-fg-muted mt-2 text-xs">
+            Цены по партнёрскому прайсу. Сроки поставки и счёт подтвердит менеджер.
+          </p>
+          <label class="relative mt-5 block">
+            <textarea
+              rows="3"
+              maxlength="1000"
+              placeholder=" "
+              [class]="field + ' resize-none bg-white'"
+              [value]="comment()"
+              (input)="comment.set($any($event.target).value)"
+            ></textarea>
+            <span [class]="label">Комментарий к заказу</span>
+          </label>
+          <button
+            type="button"
+            class="bg-primary hover:bg-primary-hover mt-4 h-12 w-full rounded-full text-[0.95rem] font-medium text-white transition-colors disabled:pointer-events-none disabled:opacity-50"
+            [disabled]="busy()"
+            (click)="submit()"
+          >
+            {{ busy() ? 'Отправляем…' : 'Оформить заказ' }}
+          </button>
+        </aside>
+      </div>
+    }
+  </div>
+</section>

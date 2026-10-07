@@ -23,28 +23,28 @@ import { Icon } from './icon';
     <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
     <dialog
       #dialog
-      class="rounded-card border-line bg-surface text-fg m-auto w-[min(32rem,calc(100vw-2rem))] border p-0 shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
+      class="bg-surface text-fg open:animate-sheet-in m-auto w-[min(30rem,calc(100vw-2rem))] rounded-[28px] p-0 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.45)] backdrop:bg-black/35 backdrop:backdrop-blur-2xl backdrop:backdrop-saturate-150 motion-reduce:animate-none"
       [attr.aria-label]="heading()"
       (close)="open.set(false)"
       (click)="onBackdropClick($event)"
     >
-      <div class="border-line flex items-start justify-between gap-4 border-b px-5 py-4">
-        <h2 class="text-lg font-semibold">{{ heading() }}</h2>
+      <div class="flex items-start justify-between gap-4 px-6 pt-7 sm:px-9 sm:pt-9">
+        <h2 class="text-[1.75rem] leading-tight font-semibold tracking-tight">{{ heading() }}</h2>
         <button
           type="button"
-          class="text-fg-muted hover:bg-surface-alt hover:text-fg rounded-md p-1"
+          class="bg-surface-alt text-fg-muted hover:text-fg inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors"
           aria-label="Close dialog"
           (click)="open.set(false)"
         >
-          <app-icon name="x" />
+          <app-icon name="x" [size]="16" />
         </button>
       </div>
 
-      <div class="px-5 py-4">
+      <div class="px-6 pt-2 pb-6 sm:px-9">
         <ng-content />
       </div>
 
-      <footer class="border-line flex justify-end gap-2 border-t px-5 py-4">
+      <footer class="flex flex-col gap-3 px-6 pb-7 sm:px-9 sm:pb-9">
         <ng-content select="[modalFooter]" />
       </footer>
     </dialog>

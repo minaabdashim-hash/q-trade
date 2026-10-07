@@ -10,10 +10,14 @@ import {
 } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { AVAILABILITY_LABELS, categoryPath } from '../../core/models';
+import { AVAILABILITY_LABELS, MAX_QUANTITY, categoryPath } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
+import { CartStore } from '../../core/services/cart-state';
 import { ProductService, apiErrorStatus } from '../../core/services/product.service';
+import { QuoteRequestService } from '../../core/services/quote-request.service';
 import { SeoService } from '../../core/services/seo.service';
 import { PriceFormatPipe } from '../../shared/pipes/price-format.pipe';
+import { Icon } from '../../shared/ui/icon';
 import { Spinner } from '../../shared/ui/spinner';
 import { deviceShape } from './device-shape';
 import { ProductVisual } from './product-card';
@@ -21,12 +25,17 @@ import { ProductVisual } from './product-card';
 @Component({
   selector: 'app-product-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Spinner, ProductVisual, PriceFormatPipe],
+  imports: [RouterLink, Spinner, ProductVisual, PriceFormatPipe, Icon],
   templateUrl: './product-detail.html',
 })
 export class ProductDetailPage {
   private readonly service = inject(ProductService);
   private readonly seo = inject(SeoService);
+  protected readonly quote = inject(QuoteRequestService);
+  protected readonly auth = inject(AuthService);
+  protected readonly cart = inject(CartStore);
+  protected readonly maxQuantity = MAX_QUANTITY;
+  protected readonly quantity = signal(1);
   private readonly response = inject(RESPONSE_INIT, { optional: true });
   readonly slug = input.required<string>();
   /** Article of the chosen model, from `?model=`; the first model when absent or unknown. */
@@ -50,6 +59,9 @@ export class ProductDetailPage {
     const models = this.product.hasValue() ? this.product.value().models : [];
     return models.find((item) => item.model === this.model()) ?? models[0] ?? null;
   });
+  protected readonly inCart = computed(
+    () => this.cart.items().find((i) => i.model === this.current()?.model)?.quantity ?? 0,
+  );
   protected readonly specGroups = computed(() => this.current()?.specGroups ?? []);
   protected readonly documents = computed(() => this.current()?.documents ?? []);
   protected readonly photos = computed(() =>
@@ -96,6 +108,13 @@ export class ProductDetailPage {
       if (this.response)
         this.response.status = this.notFound() ? 404 : this.product.error() ? 503 : 200;
     });
+  }
+
+  protected setQuantity(value: string): void {
+    const quantity = Number(value);
+    if (Number.isInteger(quantity) && quantity >= 1) {
+      this.quantity.set(Math.min(quantity, MAX_QUANTITY));
+    }
   }
 
   protected visibleGroups<T>(groups: T[]): T[] {

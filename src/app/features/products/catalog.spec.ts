@@ -63,22 +63,46 @@ describe('catalog integration', () => {
     expect(element.textContent).toContain('Под заказ');
     expect(element.querySelector('img')).toBeNull();
     expect(element.querySelector('a')?.getAttribute('href')).toBe('/products/xboard-v7-mtr');
-    expect(element.querySelector('button')).toBeNull();
+    // The only button asks for a price (opens the quote dialog); there is nothing to buy.
+    const buttons = [...element.querySelectorAll('button')].map((item) => item.textContent?.trim());
+    expect(buttons).toEqual(['Запросить цену']);
   });
 
-  it('keeps hidden/unknown price and stock out of cart arithmetic', () => {
-    expect(() => toCartItem(product)).toThrow();
-    const priced: Product = {
-      ...product,
-      showPrice: true,
+  it('keeps hidden/unknown prices out of the B2B cart and keys lines by model', () => {
+    const model = { model: 'V6550', label: '65"' };
+    expect(() => toCartItem(product, model)).toThrow();
+    const priced: Product = { ...product, showPrice: true, price: 100 };
+    // Unknown stock does not block a B2B order: the manager confirms availability.
+    expect(toCartItem(priced, model, 5)).toMatchObject({
       price: 100,
-      availability: 'in_stock',
-      stockQuantity: 2,
-    };
-    expect(toCartItem(priced, 5)).toMatchObject({ price: 100, quantity: 2, stock: 2 });
-    expect(() => toCartItem({ ...priced, showPrice: false })).toThrow();
-    expect(() => toCartItem({ ...priced, stockQuantity: null })).toThrow();
-    expect(() => toCartItem(priced, Number.NaN)).toThrow();
+      quantity: 5,
+      model: 'V6550',
+      modelLabel: '',
+    });
+    expect(toCartItem({ ...priced, variants: ['55"', '65"'] }, model).modelLabel).toBe('65"');
+    expect(toCartItem(priced, model, 10 ** 6).quantity).toBe(10000);
+    expect(() => toCartItem({ ...priced, showPrice: false }, model)).toThrow();
+    expect(() => toCartItem({ ...priced, availability: 'discontinued' }, model)).toThrow();
+    expect(() => toCartItem(priced, model, Number.NaN)).toThrow();
+  });
+
+  it('offers a B2B partner an order link instead of a quote request', async () => {
+    localStorage.setItem(
+      'qt.session',
+      JSON.stringify({ token: 't', expiresAt: '2999-01-01T00:00:00Z', user: { company: 'ТОО' } }),
+    );
+    try {
+      TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient()] });
+      const fixture = TestBed.createComponent(ProductCard);
+      fixture.componentRef.setInput('product', { ...product, showPrice: true, price: 250000 });
+      await fixture.whenStable();
+      const element = fixture.nativeElement as HTMLElement;
+      expect(element.textContent).toMatch(/250\s000/);
+      expect(element.querySelector('button')).toBeNull();
+      expect(element.textContent).toContain('Заказать');
+    } finally {
+      localStorage.removeItem('qt.session');
+    }
   });
 
   it('omits fabricated offers/ratings and escapes structured data for SSR', () => {

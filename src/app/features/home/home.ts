@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ProductService } from '../../core/services/product.service';
@@ -6,6 +14,39 @@ import { SeoService } from '../../core/services/seo.service';
 import { ProductVisual } from '../products/product-card';
 
 type Device = 'panel' | 'led' | 'bar' | 'speaker';
+
+const SLIDE_MS = 6000;
+// ponytail: slogans are copy from the design mock and the product summaries; photos come from the API by slug.
+const SLIDES = [
+  {
+    slug: 'xboard-v7-mtr',
+    category: 'xboard',
+    eyebrow: 'Новинка',
+    title: 'XBoard V7 MTR',
+    subtitle: 'Вся переговорная — в одном экране.',
+  },
+  {
+    slug: 'xboard-v7',
+    category: 'xboard',
+    eyebrow: 'Для переговорных',
+    title: 'XBoard V7',
+    subtitle: 'Тройная камера 50 Мп и 16 микрофонов.',
+  },
+  {
+    slug: 'u4-series',
+    category: 'education',
+    eyebrow: 'Для образования',
+    title: 'U4 Series',
+    subtitle: 'Панель для классов на Android 15.',
+  },
+  {
+    slug: 'e3-series',
+    category: 'education',
+    eyebrow: 'Для образования',
+    title: 'E3 Series',
+    subtitle: '4K, 40 касаний и акустика 2.2.',
+  },
+];
 
 // ponytail: static content from the design mock, move to the admin/API when it can drive the home page.
 const TILES: {
@@ -129,17 +170,33 @@ export class Home {
   protected readonly platforms = PLATFORMS;
   protected readonly size = signal<RoomSize>('medium');
   protected readonly platform = signal<Platform>('windows');
-  protected readonly kits = rxResource({
+  // ponytail: one request for the whole catalog (API cap is 60 per page); slides and kits pick by slug.
+  protected readonly catalog = rxResource({
     params: () => this.service.language(),
-    stream: ({ params }) =>
-      this.service.list({ category: 'video-conferencing', page: 1, size: 60, lang: params }),
+    stream: ({ params }) => this.service.list({ page: 1, size: 60, lang: params }),
   });
-  protected readonly shown = computed(() => {
-    const items = this.kits.hasValue() ? this.kits.value().items : [];
-    return KITS[this.size()][this.platform()].flatMap((slug) =>
-      items.filter((item) => item.slug === slug),
-    );
+  private readonly products = computed(() =>
+    this.catalog.hasValue() ? this.catalog.value().items : [],
+  );
+  protected readonly shown = computed(() =>
+    KITS[this.size()][this.platform()].flatMap((slug) =>
+      this.products().filter((item) => item.slug === slug),
+    ),
+  );
+  /** Slides with a photo in the catalog; until it loads, the first slide keeps its local poster. */
+  protected readonly slides = computed(() => {
+    const bySlug = new Map(this.products().map((item) => [item.slug, item]));
+    const found = SLIDES.flatMap((slide) => {
+      const image = bySlug.get(slide.slug)?.images[0]?.url;
+      return image ? [{ ...slide, image }] : [];
+    });
+    return found.length ? found : [{ ...SLIDES[0], image: '/xboard-v7-mtr.png' }];
   });
+  private readonly slide = signal(0);
+  protected readonly current = computed(() => this.slide() % this.slides().length);
+  protected readonly paused = signal(false);
+  /** Pointer or keyboard focus is on the hero: do not move the slide under the visitor. */
+  protected readonly held = signal(false);
   protected readonly stats = STATS;
   protected readonly projects = PROJECTS;
   protected readonly roomTypes = ROOM_TYPES;
@@ -149,7 +206,20 @@ export class Home {
     event.preventDefault();
   }
 
+  protected go(index: number): void {
+    const count = this.slides().length;
+    this.slide.set(((index % count) + count) % count);
+  }
+
   constructor() {
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) this.paused.set(true);
+      const timer = setInterval(() => {
+        if (!this.paused() && !this.held()) this.go(this.current() + 1);
+      }, SLIDE_MS);
+      destroyRef.onDestroy(() => clearInterval(timer));
+    });
     inject(SeoService).setPageMeta({
       title: 'Meeting room hardware',
       description:

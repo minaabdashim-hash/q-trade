@@ -16,15 +16,24 @@ const angularApp = new AngularNodeAppEngine();
 const apiOrigin = process.env['API_ORIGIN'] || 'http://localhost:3000';
 app.use('/api', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+  if (!['GET', 'HEAD', 'OPTIONS', 'POST'].includes(req.method)) {
     res
       .status(405)
       .json({ error: { code: 'METHOD_NOT_ALLOWED', message: 'Метод не поддерживается.' } });
     return;
   }
   try {
+    const body = req.method === 'POST';
     const response = await fetch(new URL(req.originalUrl, apiOrigin), {
       method: req.method,
+      // B2B sign-in and orders: pass the partner's token and the JSON body through unchanged.
+      headers: Object.fromEntries(
+        ['authorization', 'content-type'].flatMap((name) =>
+          req.headers[name] ? [[name, String(req.headers[name])]] : [],
+        ),
+      ),
+      body: body ? (req as unknown as ReadableStream) : undefined,
+      ...(body ? { duplex: 'half' } : {}),
       // Long enough for a free-tier API to wake from sleep (~1 min on Render).
       signal: AbortSignal.timeout(60000),
       redirect: 'error',

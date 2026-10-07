@@ -44,9 +44,9 @@ Tailwind v4 без конфиг-файла: всё в `src/styles.css` чере�
 - Husky: `pre-commit` → `lint-staged` (eslint --fix + prettier), `commit-msg` → commitlint.
 - Коммиты — Conventional Commits, scope из списка в `commitlint.config.cjs`
   (`core`, `shared`, `home`, `catalog`, `product`, `cart`, `checkout`, `auth`, `ci`, `deps`).
-- `npm run lint` сейчас падает с 4 ошибками в `shared/ui/button.ts`, `input.ts`, `modal.ts`
-  (алиасы input и доступность). Это известный долг с момента интеграции каталога, не регрессия
-  текущих правок.
+- `npm run lint` проходит без ошибок — держать так.
+- B2B вручную: `npm run b2b:user` и `npm run demo-prices` в `../Q-trade-business`, вход на `/auth/login`
+  (данные демо-аккаунта — в README бэкенда).
 
 ## Подводные камни
 

@@ -110,18 +110,74 @@
           }
           <p class="mt-8 text-2xl font-semibold">
             @if (item.showPrice && item.price !== null) {
-              от {{ item.price | price: item.currency : { hideZeroCents: true } }}
+              {{ item.price | price: item.currency : { hideZeroCents: true } }}
+              @if (auth.isAuthenticated()) {
+                <span class="text-fg-muted ml-1 text-sm font-normal">партнёрская цена</span>
+              }
             } @else {
               Цена по запросу
             }
           </p>
-          <a
-            routerLink="/"
-            fragment="request"
-            class="bg-primary hover:bg-primary-hover mt-6 inline-flex h-10 items-center rounded-md px-6 text-sm font-semibold text-white transition-colors"
-          >
-            {{ item.showPrice && item.price !== null ? 'Запросить КП' : 'Запросить цену' }}
-          </a>
+          @if (auth.isAuthenticated() && item.showPrice && current(); as model) {
+            <div class="mt-6 flex flex-wrap items-center gap-3">
+              <div class="border-line inline-flex h-10 items-center rounded-md border">
+                <button
+                  type="button"
+                  class="text-fg-muted hover:text-fg inline-flex h-full w-10 items-center justify-center disabled:opacity-40"
+                  [disabled]="quantity() <= 1"
+                  aria-label="Уменьшить количество"
+                  (click)="quantity.set(quantity() - 1)"
+                >
+                  <app-icon name="minus" [size]="14" />
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  [max]="maxQuantity"
+                  inputmode="numeric"
+                  class="h-full w-14 [appearance:textfield] bg-transparent text-center text-sm outline-none [&::-webkit-inner-spin-button]:appearance-none"
+                  [value]="quantity()"
+                  aria-label="Количество"
+                  (change)="setQuantity($any($event.target).value)"
+                />
+                <button
+                  type="button"
+                  class="text-fg-muted hover:text-fg inline-flex h-full w-10 items-center justify-center disabled:opacity-40"
+                  [disabled]="quantity() >= maxQuantity"
+                  aria-label="Увеличить количество"
+                  (click)="quantity.set(quantity() + 1)"
+                >
+                  <app-icon name="plus" [size]="14" />
+                </button>
+              </div>
+              <button
+                type="button"
+                class="bg-primary hover:bg-primary-hover inline-flex h-10 items-center gap-2 rounded-md px-6 text-sm font-semibold text-white transition-colors"
+                (click)="cart.add(item, model, quantity())"
+              >
+                <app-icon name="shopping-cart" [size]="16" />
+                В корзину
+              </button>
+              @if (inCart()) {
+                <a routerLink="/cart" class="text-primary text-sm hover:underline"
+                  >В корзине: {{ inCart() }} шт. →</a
+                >
+              }
+            </div>
+            @if (item.models.length > 1) {
+              <p class="text-fg-muted mt-2 text-xs">
+                В корзину попадёт модель {{ model.label }} ({{ model.model }}).
+              </p>
+            }
+          } @else {
+            <button
+              type="button"
+              class="bg-primary hover:bg-primary-hover mt-6 inline-flex h-10 items-center rounded-md px-6 text-sm font-semibold text-white transition-colors"
+              (click)="quote.show(item.title)"
+            >
+              {{ item.showPrice && item.price !== null ? 'Запросить КП' : 'Запросить цену' }}
+            </button>
+          }
           <dl class="mt-6 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-sm">
             @if (item.availability !== 'on_order' || item.deliveryTime) {
               <dt class="text-fg-muted">Наличие</dt>
@@ -262,13 +318,13 @@
           </p>
         </div>
         <div class="flex gap-3">
-          <a
-            routerLink="/"
-            fragment="request"
+          <button
+            type="button"
             class="bg-primary hover:bg-primary-hover rounded-md px-5 py-2.5 text-sm font-semibold"
+            (click)="quote.show(item.title)"
           >
             Запросить цену
-          </a>
+          </button>
           <a
             href="https://wa.me/"
             target="_blank"

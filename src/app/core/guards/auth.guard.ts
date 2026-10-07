@@ -1,15 +1,8 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { NotificationService } from '../services/notification.service';
 
-/** Blocks a route for anonymous visitors and remembers where they wanted to go. */
-export const authGuard: CanActivateFn = (_route, state) => {
-  const auth = inject(AuthService);
-  if (auth.isAuthenticated()) return true;
-
-  inject(NotificationService).info('Please sign in to continue.');
-  return inject(Router).createUrlTree(['/auth/login'], {
-    queryParams: { returnUrl: state.url },
-  });
-};
+/** Sends anonymous visitors to the B2B sign-in and remembers where they wanted to go. */
+export const authGuard: CanActivateFn = (_route, state) =>
+  inject(AuthService).isAuthenticated() ||
+  inject(Router).createUrlTree(['/auth/login'], { queryParams: { returnUrl: state.url } });

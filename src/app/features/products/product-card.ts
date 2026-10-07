@@ -1,7 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AVAILABILITY_LABELS, type Product, type ProductImage } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
+import { QuoteRequestService } from '../../core/services/quote-request.service';
 import { PriceFormatPipe } from '../../shared/pipes/price-format.pipe';
+import { Icon } from '../../shared/ui/icon';
 import { deviceShape } from './device-shape';
 
 @Component({
@@ -48,7 +59,7 @@ export class ProductVisual {
 @Component({
   selector: 'app-product-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, ProductVisual, PriceFormatPipe],
+  imports: [RouterLink, ProductVisual, PriceFormatPipe, Icon],
   host: { class: 'block h-full' },
   template: `
     <div
@@ -84,7 +95,8 @@ export class ProductVisual {
       }
       <p class="mt-4 text-sm font-semibold">
         @if (product().showPrice && product().price !== null) {
-          от {{ product().price | price: product().currency : { hideZeroCents: true } }}
+          {{ product().variants.length ? 'от ' : ''
+          }}{{ product().price | price: product().currency : { hideZeroCents: true } }}
         } @else {
           Цена по запросу
         }
@@ -97,12 +109,24 @@ export class ProductVisual {
           }
         </p>
       }
-      <a
-        [routerLink]="['/products', product().slug]"
-        class="bg-primary hover:bg-primary-hover mt-5 inline-flex h-9 items-center rounded-md px-6 text-xs font-semibold text-white transition-colors"
-      >
-        {{ product().showPrice && product().price !== null ? 'Запросить КП' : 'Запросить цену' }}
-      </a>
+      @if (auth.isAuthenticated() && product().showPrice) {
+        <!-- A series is ordered by its concrete model, which is picked on the product page. -->
+        <a
+          [routerLink]="['/products', product().slug]"
+          class="bg-primary hover:bg-primary-hover mt-5 inline-flex h-9 items-center gap-1.5 rounded-md px-6 text-xs font-semibold text-white transition-colors"
+        >
+          <app-icon name="shopping-cart" [size]="14" />
+          {{ product().variants.length ? 'Выбрать модель' : 'Заказать' }}
+        </a>
+      } @else {
+        <button
+          type="button"
+          class="bg-primary hover:bg-primary-hover mt-5 inline-flex h-9 items-center rounded-md px-6 text-xs font-semibold text-white transition-colors"
+          (click)="quote.show(product().title)"
+        >
+          {{ product().showPrice && product().price !== null ? 'Запросить КП' : 'Запросить цену' }}
+        </button>
+      }
       @if (comparable()) {
         <label class="text-fg-muted mt-3 flex cursor-pointer items-center gap-1.5 text-xs">
           <input
@@ -122,6 +146,8 @@ export class ProductCard {
   readonly comparable = input(false);
   readonly compared = input(false);
   readonly compareChange = output<boolean>();
+  protected readonly quote = inject(QuoteRequestService);
+  protected readonly auth = inject(AuthService);
   protected readonly availability = AVAILABILITY_LABELS;
   protected readonly badges = { new: 'NEW', hit: 'ХИТ', discount: 'СКИДКА' };
   /** "Под заказ" without a lead time is only the default, not information. */

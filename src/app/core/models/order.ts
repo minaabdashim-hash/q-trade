@@ -1,40 +1,32 @@
-import type { Address } from './user';
-import type { CartItem, CartTotals } from './cart';
+export type OrderStatus = 'new' | 'confirmed' | 'shipped' | 'cancelled';
 
-export type OrderStatus = 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled';
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  new: 'Новый',
+  confirmed: 'Подтверждён',
+  shipped: 'Отгружен',
+  cancelled: 'Отменён',
+};
 
-export interface ShippingMethod {
-  id: string;
-  name: string;
-  description: string;
+export interface OrderItem {
+  productId: string;
+  model: string;
+  title: string;
   price: number;
-  etaDays: number;
+  quantity: number;
 }
 
-export type PaymentMethodId = 'card' | 'paypal' | 'cash-on-delivery';
-
-export interface PaymentMethod {
-  id: PaymentMethodId;
-  name: string;
-  description: string;
-}
-
-export interface CheckoutPayload {
-  email: string;
-  address: Address;
-  shippingMethodId: string;
-  paymentMethodId: PaymentMethodId;
-  notes?: string;
-}
-
+/** Prices and the total are fixed by the API from the database at order time. */
 export interface Order {
   id: string;
-  number: string;
   status: OrderStatus;
-  items: CartItem[];
-  totals: CartTotals;
-  address: Address;
-  shippingMethodId: string;
-  paymentMethodId: PaymentMethodId;
+  total: number;
+  currency: string;
+  comment: string | null;
   createdAt: string;
+  items: OrderItem[];
+}
+
+export interface OrderPayload {
+  items: { productId: string; model: string; quantity: number }[];
+  comment?: string;
 }

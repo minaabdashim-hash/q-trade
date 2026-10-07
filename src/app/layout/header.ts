@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../core/services/auth.service';
+import { CartStore } from '../core/services/cart-state';
 import { ProductService } from '../core/services/product.service';
+import { QuoteRequestService } from '../core/services/quote-request.service';
 import { Icon } from '../shared/ui/icon';
 
 const NAV = ['Продукты', 'Решения', 'Проекты', 'Поддержка', 'Компания', 'Партнёрам'];
@@ -24,7 +27,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   host: {
     class:
       'fixed inset-x-0 top-0 z-30 block border-b border-white/45 bg-white/85 text-fg shadow-[0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-2xl backdrop-saturate-150',
-    '(document:keydown.escape)': 'productsOpen.set(false)',
+    '(document:keydown.escape)': 'productsOpen.set(false); accountOpen.set(false)',
     // The panel lives inside the header, so leaving the header closes it.
     '(mouseleave)': 'productsOpen.set(false)',
   },
@@ -32,8 +35,8 @@ const CATEGORY_ICONS: Record<string, string> = {
     <div
       class="mx-auto grid h-11 max-w-[1500px] grid-cols-[1fr_auto_1fr] items-center gap-6 px-6 lg:px-10"
     >
-      <a routerLink="/" class="flex items-center gap-2 whitespace-nowrap" aria-label="Q-trade">
-        <span class="text-fg text-lg font-bold tracking-tight">Q-trade</span>
+      <a routerLink="/" class="flex items-center gap-2 whitespace-nowrap" aria-label="Q-TS">
+        <span class="text-fg text-lg font-bold tracking-tight">Q-TS</span>
       </a>
 
       <nav class="hidden items-center gap-11 lg:flex" aria-label="Main">
@@ -91,20 +94,85 @@ const CATEGORY_ICONS: Record<string, string> = {
           {{ service.language().toUpperCase() }}
         </button>
 
-        <a
-          routerLink="/auth/login"
-          class="border-fg text-fg hover:bg-fg inline-flex h-7 items-center rounded-md border-[1.5px] px-4 text-xs font-medium whitespace-nowrap transition-colors hover:text-white"
-        >
-          B2B Shop
-        </a>
+        @if (auth.user(); as user) {
+          <a
+            routerLink="/cart"
+            class="text-fg/80 hover:text-fg relative inline-flex"
+            [attr.aria-label]="'Корзина, товаров: ' + cart.count()"
+          >
+            <app-icon name="shopping-cart" [size]="18" />
+            @if (cart.count()) {
+              <span
+                class="bg-primary absolute -top-1.5 -right-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-semibold text-white"
+                >{{ cart.count() > 99 ? '99+' : cart.count() }}</span
+              >
+            }
+          </a>
+          <div class="relative" (mouseleave)="accountOpen.set(false)">
+            <button
+              type="button"
+              class="border-fg bg-fg inline-flex h-7 max-w-44 items-center gap-1 rounded-md border-[1.5px] px-3 text-xs font-medium whitespace-nowrap text-white"
+              [attr.aria-expanded]="accountOpen()"
+              (click)="accountOpen.set(!accountOpen())"
+            >
+              <span class="truncate">{{ user.company }}</span>
+              <app-icon name="chevron-down" [size]="14" />
+            </button>
+            @if (accountOpen()) {
+              <div class="absolute top-full right-0 w-60 pt-2">
+                <div
+                  class="rounded-card border border-black/5 bg-white p-2 text-xs shadow-[0_18px_40px_-16px_rgba(0,0,0,0.3)]"
+                >
+                  <p class="px-3 pt-2 pb-3">
+                    <span class="block font-semibold">{{ user.fullName }}</span>
+                    <span class="text-fg-muted block truncate">{{ user.email }}</span>
+                  </p>
+                  <a
+                    routerLink="/catalog"
+                    class="block rounded-md px-3 py-2 hover:bg-black/5"
+                    (click)="accountOpen.set(false)"
+                    >Каталог с ценами</a
+                  >
+                  <a
+                    routerLink="/cart"
+                    class="block rounded-md px-3 py-2 hover:bg-black/5"
+                    (click)="accountOpen.set(false)"
+                    >Корзина</a
+                  >
+                  <a
+                    routerLink="/account/orders"
+                    class="block rounded-md px-3 py-2 hover:bg-black/5"
+                    (click)="accountOpen.set(false)"
+                    >Мои заказы</a
+                  >
+                  <button
+                    type="button"
+                    class="text-fg-muted hover:text-fg flex w-full items-center gap-2 rounded-md px-3 py-2 hover:bg-black/5"
+                    (click)="accountOpen.set(false); auth.logout()"
+                  >
+                    <app-icon name="log-out" [size]="14" /> Выйти
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <a
+            routerLink="/auth/login"
+            class="border-fg text-fg hover:bg-fg inline-flex h-7 items-center rounded-md border-[1.5px] px-4 text-xs font-medium whitespace-nowrap transition-colors hover:text-white"
+          >
+            B2B Shop
+          </a>
+        }
 
-        <a
-          routerLink="/"
+        <button
+          type="button"
           class="bg-primary hover:bg-primary-hover inline-flex h-7 items-center gap-1.5 rounded-md px-4 text-xs font-medium whitespace-nowrap text-white transition-colors"
+          (click)="quote.show()"
         >
           Запросить КП
           <app-icon name="chevron-right" [size]="15" />
-        </a>
+        </button>
 
         <button
           type="button"
@@ -302,6 +370,10 @@ const CATEGORY_ICONS: Record<string, string> = {
 })
 export class Header {
   protected readonly service = inject(ProductService);
+  protected readonly quote = inject(QuoteRequestService);
+  protected readonly auth = inject(AuthService);
+  protected readonly cart = inject(CartStore);
+  protected readonly accountOpen = signal(false);
   protected readonly nav = NAV;
   protected readonly products = computed(() =>
     this.service.categoryList.hasValue()

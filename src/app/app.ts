@@ -3,6 +3,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
 import { StorageService } from './core/services/storage.service';
 import { Header } from './layout/header';
 import { Icon } from './shared/ui/icon';
+import { QuoteDialog } from './shared/ui/quote-dialog';
 import { ToastHost } from './shared/ui/toast-host';
 
 const COOKIE_KEY = 'qt.cookie-consent';
@@ -19,7 +20,7 @@ const FOOTER_COLUMNS = [
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, Header, ToastHost, Icon],
+  imports: [RouterOutlet, RouterLink, Header, ToastHost, QuoteDialog, Icon],
   templateUrl: './app.html',
 })
 export class App {

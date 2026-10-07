@@ -1,50 +1,22 @@
-export type UserRole = 'customer' | 'admin';
-
-export interface Address {
-  fullName: string;
-  line1: string;
-  line2?: string;
-  city: string;
-  postalCode: string;
-  country: string;
-  phone?: string;
-}
+/** B2B partner account; accounts are created by a manager, there is no self sign-up. */
+export type UserRole = 'b2b' | 'admin';
 
 export interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  roles: UserRole[];
-  avatarUrl?: string | null;
-  defaultAddress?: Address | null;
+  fullName: string;
+  company: string;
+  role: UserRole;
 }
 
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  /** Unix epoch ms at which the access token expires. */
-  expiresAt: number;
-}
-
-export interface AuthSession extends AuthTokens {
+export interface AuthSession {
+  token: string;
+  /** ISO timestamp; the API rejects the token after it. */
+  expiresAt: string;
   user: User;
 }
 
 export interface LoginPayload {
   email: string;
   password: string;
-}
-
-export interface RegisterPayload extends LoginPayload {
-  firstName: string;
-  lastName: string;
-}
-
-export function fullName(user: User): string {
-  return `${user.firstName} ${user.lastName}`.trim();
-}
-
-export function hasRole(user: User | null, role: UserRole): boolean {
-  return !!user?.roles.includes(role);
 }
